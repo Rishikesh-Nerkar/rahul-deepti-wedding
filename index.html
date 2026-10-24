@@ -2245,6 +2245,42 @@
   }
 }
 
+  
+    /* Background music control — isolated addition; existing site styling remains unchanged. */
+    .background-music {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 125;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: calc(100vw - 36px);
+      padding: 12px 17px;
+      border: 1px solid #f4dfaa;
+      border-radius: 999px;
+      background: rgba(69, 20, 27, .96);
+      color: #fff2cf;
+      box-shadow: 0 8px 24px rgba(25, 5, 8, .3);
+      font: 600 .84rem "DM Sans", sans-serif;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .background-music:hover { background: #641f2a; }
+    .background-music:focus-visible {
+      outline: 3px solid #edc86d;
+      outline-offset: 4px;
+    }
+    @media (max-width: 420px) {
+      .background-music {
+        right: 12px;
+        bottom: 12px;
+        padding: 11px 14px;
+        font-size: .78rem;
+      }
+    }
+
   </style>
 </head>
 
@@ -2459,6 +2495,7 @@
             <div class="eyebrow" style="color:#9a7336;margin-top:18px">DAY ONE</div>
             <h3>Jaldi and Ghurchari Ceremony</h3>
             <div class="event-date">WEDNESDAY · 25 NOVEMBER 2026</div>
+            <div class="pill" style="margin-top:12px;font-weight:700">3:00 PM</div>
             <p>Join us for the vibrant Jaldi and Ghurchari celebrations, filled with family traditions, joyful moments,
               and blessings before the wedding day.</p>
             <a class="event-location-button"
@@ -2572,6 +2609,11 @@
 
   <footer>Made with love for Rahul & Deepti · 26 November 2026</footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <audio id="backgroundMusic" src="audio/aaj_sajeya.mp3" autoplay loop preload="auto"></audio>
+  <button class="background-music" id="musicToggle" type="button" aria-label="Play background music" aria-pressed="false">
+    ♫ <span id="musicToggleLabel">Play music</span>
+  </button>
 
   <script>
     const $ = (selector) => document.querySelector(selector);
@@ -2847,6 +2889,57 @@
 
     // Slow, continuous rose petals throughout the invitation; action sparkles are separate.
     startAmbientPetals();
+
+    // Background music: attempt autoplay on page load and loop continuously.
+    // Browsers may block audible autoplay until the visitor interacts with the page.
+    const backgroundMusic = $("#backgroundMusic");
+    const musicToggle = $("#musicToggle");
+    const musicToggleLabel = $("#musicToggleLabel");
+
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.28;
+
+    function updateMusicButton() {
+      const isPlaying = !backgroundMusic.paused;
+      musicToggleLabel.textContent = isPlaying
+        ? (backgroundMusic.muted ? "Unmute music" : "Mute music")
+        : "Play music";
+      musicToggle.setAttribute("aria-label", musicToggleLabel.textContent);
+      musicToggle.setAttribute("aria-pressed", String(isPlaying && !backgroundMusic.muted));
+    }
+
+    async function attemptMusicAutoplay() {
+      try {
+        await backgroundMusic.play();
+      } catch (error) {
+        // Keep the invitation working normally if the browser blocks autoplay.
+      }
+      updateMusicButton();
+    }
+
+    musicToggle.addEventListener("click", async () => {
+      if (backgroundMusic.paused) {
+        backgroundMusic.muted = false;
+        try {
+          await backgroundMusic.play();
+        } catch (error) {
+          // If playback is still blocked, leave the button available for another try.
+        }
+      } else {
+        backgroundMusic.muted = !backgroundMusic.muted;
+      }
+      updateMusicButton();
+    });
+
+    backgroundMusic.addEventListener("play", updateMusicButton);
+    backgroundMusic.addEventListener("pause", updateMusicButton);
+    backgroundMusic.addEventListener("volumechange", updateMusicButton);
+    // Retry after a real visitor interaction; this helps browsers that reject autoplay.
+    document.addEventListener("pointerdown", function startMusicAfterInteraction() {
+      if (backgroundMusic.paused) attemptMusicAutoplay();
+    }, { once: true });
+    attemptMusicAutoplay();
+
   </script>
 </body>
 
