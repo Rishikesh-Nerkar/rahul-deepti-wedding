@@ -2493,14 +2493,14 @@
           <article class="event-card reveal">
             <div class="event-icon" aria-hidden="true">✿</div>
             <div class="eyebrow" style="color:#9a7336;margin-top:18px">DAY ONE</div>
-            <h3>Jaldi and Ghurchari Ceremony</h3>
+            <h3>Haldi and Ghurchari Ceremony</h3>
             <div class="event-date">WEDNESDAY · 25 NOVEMBER 2026</div>
             <div class="pill" style="margin-top:12px;font-weight:700">3:00 PM</div>
-            <p>Join us for the vibrant Jaldi and Ghurchari celebrations, filled with family traditions, joyful moments,
+            <p>Join us for the vibrant Haldi and Ghurchari celebrations, filled with family traditions, joyful moments,
               and blessings before the wedding day.</p>
             <a class="event-location-button"
               href="https://www.google.com/maps?q=28.584394454956055,77.087890625&amp;z=17&amp;hl=en" target="_blank"
-              rel="noopener noreferrer" aria-label="Open Jaldi and Ghurchari ceremony location in Google Maps">
+              rel="noopener noreferrer" aria-label="Open Haldi and Ghurchari ceremony location in Google Maps">
               <svg viewBox="0 0 24 24" width="19" height="19" fill="none" aria-hidden="true">
                 <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" stroke-width="1.8" />
                 <circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="1.8" />
@@ -2667,6 +2667,8 @@
     function enterSite(animate = true) {
       if (introOpened) return;
       introOpened = true;
+      // Opening or skipping the intro is a real user gesture, so use it to start audio.
+      startMusicFromUserGesture();
       if (animate) {
         palace.classList.add("open");
         actionSparkles(34);
@@ -2912,7 +2914,19 @@
       try {
         await backgroundMusic.play();
       } catch (error) {
-        // Keep the invitation working normally if the browser blocks autoplay.
+        // Audible autoplay may be blocked by the browser until a visitor gesture.
+      }
+      updateMusicButton();
+    }
+
+    // Called directly from visitor gestures (especially Open the Doors / Skip intro).
+    // This is more reliable than asking visitors to press the separate music button.
+    async function startMusicFromUserGesture() {
+      backgroundMusic.muted = false;
+      try {
+        await backgroundMusic.play();
+      } catch (error) {
+        // Browser policy or a missing/unavailable audio file can still prevent playback.
       }
       updateMusicButton();
     }
@@ -2934,10 +2948,17 @@
     backgroundMusic.addEventListener("play", updateMusicButton);
     backgroundMusic.addEventListener("pause", updateMusicButton);
     backgroundMusic.addEventListener("volumechange", updateMusicButton);
-    // Retry after a real visitor interaction; this helps browsers that reject autoplay.
+    // Retry immediately on the first visitor gesture anywhere on the page.
+    // Capture phase ensures this runs for the intro buttons and other controls too.
     document.addEventListener("pointerdown", function startMusicAfterInteraction() {
-      if (backgroundMusic.paused) attemptMusicAutoplay();
-    }, { once: true });
+      if (backgroundMusic.paused || backgroundMusic.muted) startMusicFromUserGesture();
+    }, { once: true, capture: true });
+
+    document.addEventListener("keydown", function startMusicAfterKeyboardInteraction() {
+      if (backgroundMusic.paused || backgroundMusic.muted) startMusicFromUserGesture();
+    }, { once: true, capture: true });
+
+    // Attempt audible autoplay on page load; the browser may reject it.
     attemptMusicAutoplay();
 
   </script>
